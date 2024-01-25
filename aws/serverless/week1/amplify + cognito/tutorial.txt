@@ -1,0 +1,164 @@
+https://atp.labs.awsevents.com/sa/lab/arn%3Aaws%3Alearningcontent%3Aus-east-1%3A470679935125%3Ablueprintversion%2FSPL-BE-200-DVAPFE-1%3A1.0.1-d7784c9a/en-US/0047974e-1028-4dab-a45a-acd921b3fb18::fzfQupUG92RJy56ogwKJ7d
+https://us-west-2.console.aws.amazon.com/cloud9/ide/fa5484767291447e8ec97c7a842b9d21?region=us-west-2#
+
+cd ~/environment/react-amplified/
+
+npm install
+
+
+npm install -g @aws-amplify/cli
+
+cd /home/ec2-user/environment/react-amplified
+
+boundary_policy=$(aws iam list-policies --query 'Policies[?PolicyName==`AmplifyPermissionsBoundary`].Arn' --output text)
+
+amplify init --permissions-boundary $boundary_policy
+
+
+	You will be asked a series of questions. Use the following answers:
+
+	For Enter a name for the project (reactamplified), press Enter to use the default value.
+
+	For Initialize the project with the above configuration?, accept default value for Yes
+
+	For Select the authentication method you want to use:, choose AWS profile
+
+	For Please choose the profile you want to use, choose default
+
+
+	You have successfully installed npm, the Amplify CLI and initialized the Amplify project.
+
+
+
+
+>>>>> Add hosting and authorization to the Amplify project
+
+amplify add hosting
+
+
+    It asks you which hosting option to use. Choose Hosting with Amplify Console (Managed hosting with custom domains,Continuous deployment).
+
+    For Choose a type, select Manual deployment.
+    
+    
+    
+>>>>> The command amplify publish is designed to build and publish both the backend and frontend of the project. After running amplify publish --yes, your app is available online and your terminal displays your app URL hosted on an amplifyapp.com domain. Whenever you have additional changes to publish, just re-run the amplify publish command.
+
+amplify publish --yes
+amplify add auth
+
+
+
+    For the question Do you want to use the default authentication security configuration?, choose Manual configuration.
+
+    For User Sign-Up, Sign-In, chose user Sign-Up & Sign-In only (Best used with a cloud API only).
+
+    For Provide a friendly name for your resource that will be used to label this category in the project:, use the default value for friendly name for your resource.
+
+    For Provide a name for your user pool:, use the default value.
+
+    For How do you want users to sign in, choose email.
+
+    For Do you want to add User Pool Groups?, choose No.
+
+Note: We do not have different levels of access to the application. Everyone gets the same access.
+
+    For Do you want to add admin queries API?, choose No.
+
+    For Multifactor authentication (MFA) user login options, choose OFF.
+
+    For Email based user registration/forgot password, choose Enabled (Requires per-user email entry at registration).
+
+    For Specify an email verification subject: (Your verification code), use the default value.
+
+    For Specify and email verification message: Your verification code is {####}, use the default value.
+
+    For Do you want to override the default password policy for this User Pool?, choose No.
+
+    For What attributes are required for signing up?, choose Email.
+
+    For Specify the app’s refresh token expiration period (in days):, use the default value of 30.
+
+    For Do you want to specify the user attributes this app can read and write?, use default value of No.
+
+    For Do you want to enable any of the following capabilities?, press Enter to use the default value of No.
+
+    For Do you want to use an OAuth flow?, choose No.
+
+    For Do you want to configure Lambda triggers?, type n
+
+amplify push --yes
+
+	You have added hosting and authorization to the Amplify project.
+	
+	
+	With the Cognito resources in-place, you now configure the application to use Cognito to authenticate existing users and allow new users to sign up. Then you use the SAM CLI to re-deploy the application with the authentication capabilities.
+	
+	The amplify-meta.json file is generated automatically by the Amplify CLI when you run amplify init command. This file contains metadata about your Amplify project and is used by the Amplify library to connect to your cloud resources.
+
+	The amplify-meta.json file is used by the Amplify CLI to keep track of your project’s backend environment. It contains information about your project’s backend environment such as the name of your environment, the AWS region where your resources are deployed, and more.
+
+	In this task, you obtain the UserPoolId value and the AppClientIDWeb value to update the SAM template for the API Gateway resource to be able to communicate with Cognito once it is created.
+	
+cat ~/environment/react-amplified/amplify/backend/amplify-meta.json
+
+APP_CLIENT_ID_WEB=$(jq -r '.auth | .[keys[0]] | .output.AppClientIDWeb' ~/environment/react-amplified/amplify/backend/amplify-meta.json)
+
+USER_POOL_ID=$(jq -r '.auth | .[keys[0]] | .output.UserPoolId' ~/environment/react-amplified/amplify/backend/amplify-meta.json)
+
+printf "\n\nUserPoolId placeholder value: $USER_POOL_ID\n\nAppClientIDWeb placeholder value: $APP_CLIENT_ID_WEB\n\n"
+
+	With the variables set, update the api-backend-sam/template.yaml file placeholders with the appropriate values using the following
+	sed
+	commands:
+
+clear
+before=$(cat ~/environment/api-backend-sam/template.yaml | head -41 | tail -7)
+update1=$(sed -i "s/REPLACE_WITH_USERPOOL_ID/$USER_POOL_ID/g" ~/environment/api-backend-sam/template.yaml)
+update2=$(sed -i "s/REPLACE_WITH_APP_CLIENT_ID_WEB/$APP_CLIENT_ID_WEB/g" ~/environment/api-backend-sam/template.yaml)
+after=$(cat ~/environment/api-backend-sam/template.yaml | head -41 | tail -7)
+
+printf "template.yaml --> code BEFORE update:\n\n$before; \n\ntemplate.yaml --> code AFTER update:\n\n $after\n\n"
+
+	These updates are how the application authenticates users.
+	
+cd ~/environment/api-backend-sam
+sam build
+	Now that the deployment package has been created, you deploy the changes to upgrade the API to require authentication with the following command:
+sam deploy
+
+	Update the React app and test functionality
+API_URL=$(aws cloudformation describe-stacks --stack-name sam-lab --query 'Stacks[0].Outputs[?OutputKey==`Api`].OutputValue' --output text | sed 's/\/$//'); echo ""; echo "URL = $API_URL"; echo ""
+
+	To replace the baseUrl placeholder value with the Api Gateway endpoint URL, run the following commands:
+clear
+before1=$(cat ~/environment/react-amplified/src/App.js | head -15 | tail -2)
+update3=$(sed -i "s|REPLACE_ME_WITH_THE_API_URL|$API_URL|g" /home/ec2-user/environment/react-amplified/src/App.js)
+after1=$(cat ~/environment/react-amplified/src/App.js | head -15 | tail -2)
+printf "App.js --> code BEFORE update:\n\n$before1\n\nApp.js --> code AFTER update:\n\n$after1\n\n"
+
+	test curl
+	
+# Set variables
+baseUrl=$API_URL 
+uniqueGridId=`date +%s` 
+curlOutput=$(curl -s -X POST "${baseUrl}/generate_grid?uniqueGridId=${uniqueGridId}")
+
+# Print variable values
+echo -e "\nbaseUrl: ${API_URL}\n"; echo -e "uniqueGridId: ${uniqueGridId}\n" ;  echo -e "Curl command output: ${curlOutput}\n"
+
+	redeploy the amplify project
+	
+cd ~/environment/react-amplified
+
+amplify publish --yes
+
+
+
+
+
+	
+	
+	
+	
+

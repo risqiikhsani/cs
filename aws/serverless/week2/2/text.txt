@@ -1,0 +1,28 @@
+https://atp.labs.awsevents.com/sa/lab/arn%3Aaws%3Alearningcontent%3Aus-east-1%3A470679935125%3Ablueprintversion%2FSPL-BE-200-DVCTGG-1%3A1.0.1-a6a81da0/en-US/0047974e-1028-4dab-a45a-acd921b3fb18::o8AyRf2CnM3ccddsRHRSWk
+
+
+This YAML code is an AWS CloudFormation template written in AWS Serverless Application Model (SAM) syntax. The template defines the infrastructure required for a trivia game using AWS services such as AWS Lambda, Amazon DynamoDB, and API Gateway WebSocket.
+
+Here's a breakdown of the main components:
+
+    Resources:
+        TriviaWebSocket: Defines an API Gateway WebSocket for handling communication between clients.
+        TriviaConnections: Defines a DynamoDB table for storing information about connections, including connectionId and gameId.
+        NewGameRoute, NewGameInteg, NewGameFunction: Sets up resources for handling a new game, including an API route, integration, and Lambda function.
+        JoinGameRoute, JoinGameInteg, JoinGameFunction: Similar to the above but for joining an existing game.
+        StartGameRoute, StartGameInteg, StartGameFunction: Resources for starting a game.
+        AnswerRoute, AnswerInteg, AnswerFunction: Resources for handling player answers.
+        QuestionFunction, CalculateScoresFunction: Lambda functions for handling game-related logic.
+        Deployment, Stage: Define the deployment and stage configurations for the API Gateway WebSocket.
+        TriviaStateMachine: Defines an AWS Step Functions state machine for orchestrating game flow.
+
+    Outputs:
+        TriviaWebSocketApi: Outputs the WebSocket endpoint for the deployed API.
+
+    Permissions:
+        IAM roles (e.g., SamGameNewGameFunctionRole, SamGameJoinGameFunctionRole) specify the permissions for the Lambda functions to access DynamoDB and other services.
+
+    Dependencies:
+        Some resources depend on others (DependsOn property) to ensure they are created in the correct order.
+
+This template provides a scalable and serverless architecture for hosting a trivia game with real-time WebSocket communication. The AWS services are orchestrated using AWS SAM to simplify the deployment and management of the serverless application.
